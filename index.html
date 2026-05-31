@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ebola Monitor — DRC 2026 Outbreak · Live Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#07090c;--bg2:#0e1218;--bg3:#141a21;--bg4:#1b222b;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--border3:rgba(255,255,255,0.22);
+  --text:#dde3ea;--text2:#7a8694;--text3:#3e4a56;
+  --red:#e63946;--red2:#ff8087;--red3:rgba(230,57,70,.12);
+  --amber:#f4a261;--amber3:rgba(244,162,97,.12);
+  --green:#52b788;--green3:rgba(82,183,136,.12);
+  --blue:#4895ef;--blue3:rgba(72,149,239,.12);
+  --teal:#48cae4;
+  --mono:'IBM Plex Mono',monospace;
+  --sans:'IBM Plex Sans',sans-serif;
+  --r:6px;--rl:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(230,57,70,.07) 0%,transparent 70%);pointer-events:none;z-index:0;}
+
+.app{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:0 20px 60px;}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px;}
+.topbar-brand{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--text);letter-spacing:-.01em;display:flex;align-items:center;gap:8px;}
+.topbar-brand .dot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:blink 1.5s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.pheic-badge{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:99px;background:rgba(230,57,70,.15);color:var(--red2);border:1px solid rgba(230,57,70,.3);letter-spacing:.06em;white-space:nowrap;}
+.ext-link{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:var(--r);border:1px solid var(--border2);color:var(--text2);text-decoration:none;letter-spacing:.05em;transition:all .18s;}
+.ext-link:hover{border-color:var(--border3);color:var(--text);}
+
+/* ── HERO ── */
+.hero{padding:28px 0 24px;border-bottom:1px solid var(--border);}
+.hero-eyebrow{font-family:var(--mono);font-size:10px;color:var(--red);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.hero h1{font-family:var(--mono);font-size:clamp(24px,4.5vw,42px);font-weight:600;line-height:1.05;letter-spacing:-.03em;color:var(--text);}
+.hero h1 em{color:var(--red);font-style:normal;}
+.hero-meta{margin-top:10px;font-size:13px;color:var(--text2);display:flex;gap:18px;flex-wrap:wrap;}
+.hero-meta span{display:flex;align-items:center;gap:5px;}
+.hero-meta strong{color:var(--text);font-weight:500;}
+
+/* ── SECTION HEADERS ── */
+.section{margin-top:32px;}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
+.section-title{font-family:var(--mono);font-size:10px;color:var(--text3);letter-spacing:.14em;text-transform:uppercase;display:flex;align-items:center;gap:8px;}
+.section-title::before{content:'';display:block;width:16px;height:1px;background:var(--red);}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px;position:relative;overflow:hidden;transition:border-color .2s;}
+.kpi:hover{border-color:var(--border2);}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ka,var(--red));border-radius:2px 2px 0 0;}
+.kpi-label{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:7px;}
+.kpi-value{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--text);line-height:1;}
+.kpi-sub{font-size:11px;color:var(--text2);margin-top:4px;}
+.kpi-delta{font-family:var(--mono);font-size:10px;margin-top:5px;padding:2px 7px;border-radius:99px;display:inline-block;}
+.delta-up{background:var(--red3);color:var(--red2);}
+.delta-neu{background:var(--bg3);color:var(--text3);}
+
+/* ── ALERT BANNER ── */
+.alert{background:linear-gradient(135deg,rgba(230,57,70,.1),rgba(230,57,70,.05));border:1px solid rgba(230,57,70,.25);border-radius:var(--rl);padding:14px 18px;display:flex;gap:12px;align-items:flex-start;margin-bottom:20px;}
+.alert-icon{font-size:18px;flex-shrink:0;margin-top:1px;}
+.alert-body{}
+.alert-title{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red2);letter-spacing:.05em;margin-bottom:4px;}
+.alert-text{font-size:13px;color:var(--text2);line-height:1.5;}
+.alert-text a{color:var(--red2);text-decoration:none;}
+.alert-text a:hover{text-decoration:underline;}
+
+/* ── PANELS ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
+@media(max-width:600px){.grid2{grid-template-columns:1fr;}}
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px 20px;transition:border-color .2s;}
+.panel:hover{border-color:var(--border2);}
+.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;flex-wrap:wrap;}
+.panel-title{font-family:var(--mono);font-size:10px;color:var(--text2);letter-spacing:.1em;text-transform:uppercase;}
+.tabs{display:flex;gap:4px;}
+.tab{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;transition:all .15s;}
+.tab.on{background:var(--bg3);border-color:var(--border2);color:var(--text);}
+.tab:hover{color:var(--text);}
+.chart-box{position:relative;width:100%;}
+
+/* ── PROVINCE TABLE ── */
+.province-list{width:100%;border-collapse:collapse;font-size:12px;}
+.province-list th{font-family:var(--mono);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);}
+.province-list td{padding:7px 8px;border-bottom:1px solid var(--border);color:var(--text);}
+.province-list tr:last-child td{border-bottom:none;}
+.province-list tr:hover td{background:rgba(255,255,255,.02);}
+.bar-cell{display:flex;align-items:center;gap:8px;}
+.mini-bar{height:5px;border-radius:3px;background:var(--red);min-width:2px;transition:width .4s;}
+.status-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px;}
+.active-dot{background:var(--red);animation:blink 1.5s infinite;}
+.contained-dot{background:var(--green);}
+
+/* ── TIMELINE TABLE ── */
+.filter-bar{display:flex;flex-wrap:wrap;gap:8px;padding:14px 0;border-bottom:1px solid var(--border);align-items:center;}
+.filter-label{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;}
+.fgroup{display:flex;gap:5px;flex-wrap:wrap;}
+.fbtn{font-family:var(--mono);font-size:10px;padding:4px 11px;border-radius:99px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .18s;white-space:nowrap;}
+.fbtn:hover{border-color:var(--border2);color:var(--text);}
+.fbtn.on{background:var(--red);border-color:var(--red);color:#fff;}
+.search-wrap{margin-left:auto;position:relative;}
+.search-inp{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:12px;padding:5px 10px 5px 28px;border-radius:var(--r);outline:none;width:170px;transition:border-color .2s,width .3s;}
+.search-inp:focus{border-color:var(--border2);width:210px;}
+.search-inp::placeholder{color:var(--text3);}
+.s-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;}
+
+.tbl-controls{display:flex;gap:8px;margin:14px 0 10px;align-items:center;flex-wrap:wrap;}
+.sel{background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;padding:4px 8px;border-radius:var(--r);outline:none;cursor:pointer;}
+.tbl-info{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--text3);}
+
+.data-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.data-tbl th{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:7px 9px;text-align:left;border-bottom:1px solid var(--border);cursor:pointer;white-space:nowrap;user-select:none;}
+.data-tbl th:hover{color:var(--text2);}
+.data-tbl th.sorted{color:var(--red);}
+.data-tbl td{padding:7px 9px;border-bottom:1px solid var(--border);color:var(--text);}
+.data-tbl td.mn{font-family:var(--mono);font-size:11px;}
+.data-tbl tr:last-child td{border-bottom:none;}
+.data-tbl tr:hover td{background:rgba(255,255,255,.02);}
+.badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:99px;font-weight:500;}
+.b-hi{background:var(--red3);color:var(--red2);}
+.b-mid{background:var(--amber3);color:var(--amber);}
+.b-lo{background:var(--green3);color:var(--green);}
+.b-na{background:var(--bg3);color:var(--text3);}
+.sp-z{background:var(--blue3);color:#7dbfff;}
+.sp-s{background:var(--amber3);color:var(--amber);}
+.sp-b{background:var(--green3);color:var(--green);}
+.sp-t{background:var(--bg3);color:var(--text3);}
+.tag-on{background:var(--red3);color:var(--red2);font-size:10px;padding:2px 7px;border-radius:3px;font-family:var(--mono);}
+.tag-ov{color:var(--text3);font-size:11px;}
+
+.pager{display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:12px;flex-wrap:wrap;}
+.pg{font-family:var(--mono);font-size:10px;padding:3px 9px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:all .15s;}
+.pg:hover:not(:disabled){border-color:var(--border2);color:var(--text);}
+.pg.on{background:var(--red);border-color:var(--red);color:#fff;}
+.pg:disabled{opacity:.25;cursor:not-allowed;}
+
+/* ── MAP ── */
+.map-svg{width:100%;display:block;}
+.cp{cursor:pointer;transition:opacity .12s;}
+.cp:hover{opacity:.75;}
+.mtt{position:fixed;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:10px 14px;font-size:12px;pointer-events:none;display:none;z-index:999;min-width:170px;box-shadow:0 8px 28px rgba(0,0,0,.5);}
+.mtt strong{font-family:var(--mono);font-size:11px;color:var(--text);display:block;margin-bottom:4px;}
+.mtt-row{display:flex;justify-content:space-between;gap:14px;color:var(--text2);}
+.mtt-row span:last-child{color:var(--text);font-weight:500;font-family:var(--mono);}
+.map-leg{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
+.leg-i{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);font-family:var(--mono);}
+.leg-sw{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+
+/* ── DONUT LEGEND ── */
+.sp-legend{padding-left:12px;}
+.sp-legend-row{display:flex;align-items:center;gap:7px;margin-bottom:8px;}
+.sp-swatch{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+
+/* ── FOOTER ── */
+footer{border-top:1px solid var(--border);padding:20px 0;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-top:40px;}
+.footer-src{font-size:11px;color:var(--text3);}
+.footer-src a{color:var(--text2);text-decoration:none;}
+.footer-src a:hover{color:var(--text);}
+.footer-tag{font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:.1em;}
+
+/* ── ANIM ── */
+.fi{animation:fi .5s ease both;}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.fi:nth-child(1){animation-delay:.04s}.fi:nth-child(2){animation-delay:.08s}
+.fi:nth-child(3){animation-delay:.12s}.fi:nth-child(4){animation-delay:.16s}
+.fi:nth-child(5){animation-delay:.2s}.fi:nth-child(6){animation-delay:.24s}
+
+@media(max-width:600px){
+  .app{padding:0 12px 40px;}
+  .hero h1{font-size:22px;}
+  .kpi-value{font-size:21px;}
+  .filter-bar{gap:6px;}
+  .search-wrap{width:100%;}
+  .search-inp,.search-inp:focus{width:100%;}
+}
+</style>
+</head>
+<body>
+<div id="mtt" class="mtt"></div>
+<div class="app">
+
+<!-- TOPBAR -->
+<div class="topbar fi">
+  <div class="topbar-brand">
+    <span class="dot"></span>
+    EBOLA MONITOR
+  </div>
+  <div class="topbar-right">
+    <span class="pheic-badge">⚠ WHO PHEIC DECLARED 17 MAY 2026</span>
+    <a href="https://www.who.int/emergencies/disease-outbreak-news?diseases=ebola-virus-disease" target="_blank" rel="noopener" class="ext-link">WHO DON ↗</a>
+    <a href="https://www.cdc.gov/ebola/situation-summary/index.html" target="_blank" rel="noopener" class="ext-link">CDC ↗</a>
+    <a href="https://www.ecdc.europa.eu/en/ebola-virus-disease-outbreak-democratic-republic-congo-and-uganda" target="_blank" rel="noopener" class="ext-link">ECDC ↗</a>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="hero fi">
+  <div class="hero-eyebrow">
+    <span class="dot"></span>
+    Active outbreak · Bundibugyo ebolavirus · 17th outbreak in DRC
+  </div>
+  <h1>DRC Ebola Outbreak <em>2026</em><br/>Ituri · Nord-Kivu · Sud-Kivu</h1>
+  <div class="hero-meta">
+    <span>Declared <strong>15 May 2026</strong></span>
+    <span>PHEIC since <strong>17 May 2026</strong></span>
+    <span>Last update <strong>29 May 2026</strong></span>
+    <span>Virus <strong>Bundibugyo (BDBV)</strong> — no approved vaccine</span>
+  </div>
+</div>
+
+<!-- ALERT -->
+<div class="section fi">
+  <div class="alert">
+    <span class="alert-icon">🔴</span>
+    <div class="alert-body">
+      <div class="alert-title">SITUATION AS OF 29 MAY 2026</div>
+      <div class="alert-text">
+        <strong>125 confirmed</strong> + <strong>906 suspected</strong> cases across Ituri, Nord-Kivu and Sud-Kivu provinces. Uganda reports <strong>9 confirmed cases</strong> linked to DRC travel. Bundibugyo virus has <b>no approved vaccine or targeted treatment</b> — response relies on supportive care, ring isolation, and contact tracing. WHO, CDC, MSF and UNFPA engaged.
+        <br/><a href="https://www.doctorswithoutborders.org/latest/ebola-disease-outbreak-2026-how-msf-responding" target="_blank" rel="noopener">MSF response briefing ↗</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CURRENT KPIs -->
+<div class="section fi">
+  <div class="section-head">
+    <span class="section-title">Current outbreak — DRC + Uganda 2026</span>
+  </div>
+  <div class="kpi-strip" id="currentKpis">
+    <div class="kpi" style="--ka:var(--red)">
+      <div class="kpi-label">Confirmed cases</div>
+      <div class="kpi-value">125</div>
+      <div class="kpi-sub">DRC laboratory confirmed</div>
+      <span class="kpi-delta delta-up">+74 vs 16 May</span>
+    </div>
+    <div class="kpi" style="--ka:var(--amber)">
+      <div class="kpi-label">Suspected cases</div>
+      <div class="kpi-value">906</div>
+      <div class="kpi-sub">under investigation</div>
+      <span class="kpi-delta delta-up">active surveillance</span>
+    </div>
+    <div class="kpi" style="--ka:#c1121f">
+      <div class="kpi-label">Confirmed deaths</div>
+      <div class="kpi-value">17</div>
+      <div class="kpi-sub">of confirmed cases</div>
+      <span class="kpi-delta delta-up">CFR 13.6% confirmed</span>
+    </div>
+    <div class="kpi" style="--ka:var(--amber)">
+      <div class="kpi-label">Suspected deaths</div>
+      <div class="kpi-value">223</div>
+      <div class="kpi-sub">pending investigation</div>
+    </div>
+    <div class="kpi" style="--ka:var(--blue)">
+      <div class="kpi-label">Uganda cases</div>
+      <div class="kpi-value">9</div>
+      <div class="kpi-sub">confirmed · 1 death</div>
+      <span class="kpi-delta delta-up">3+ travel-linked</span>
+    </div>
+    <div class="kpi" style="--ka:var(--green)">
+      <div class="kpi-label">Provinces affected</div>
+      <div class="kpi-value">3</div>
+      <div class="kpi-sub">Ituri · Nord-Kivu · Sud-Kivu</div>
+    </div>
+  </div>
+</div>
+
+<!-- MAP + PROVINCE BREAKDOWN -->
+<div class="section fi">
+  <div class="section-head">
+    <span class="section-title">Geographic spread</span>
+    <div class="tabs">
+      <button class="tab on" onclick="setMapM('cases',this)">Cases</button>
+      <button class="tab" onclick="setMapM('deaths',this)">Deaths</button>
+      <button class="tab" onclick="setMapM('outbreaks',this)">Outbreaks</button>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="panel" style="padding:14px;">
+      <div class="panel-head"><span class="panel-title">DRC affected provinces (2026)</span></div>
+      <table class="province-list" id="provinceTable">
+        <thead><tr>
+          <th>Province / Zone</th><th>Conf. Cases</th><th>Deaths</th><th>Status</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><span class="status-dot active-dot"></span>Ituri (Mongbwalu)</td><td class="mn">51</td><td class="mn">8</td><td><span class="badge b-hi">Active</span></td></tr>
+          <tr><td><span class="status-dot active-dot"></span>Ituri (Bunia)</td><td class="mn">38</td><td class="mn">5</td><td><span class="badge b-hi">Active</span></td></tr>
+          <tr><td><span class="status-dot active-dot"></span>Ituri (Rwampara)</td><td class="mn">20</td><td class="mn">3</td><td><span class="badge b-hi">Active</span></td></tr>
+          <tr><td><span class="status-dot active-dot"></span>Nord-Kivu (Butembo)</td><td class="mn">9</td><td class="mn">1</td><td><span class="badge b-hi">Active</span></td></tr>
+          <tr><td><span class="status-dot active-dot"></span>Nord-Kivu (Goma)</td><td class="mn">5</td><td class="mn">0</td><td><span class="badge b-mid">Monitoring</span></td></tr>
+          <tr><td><span class="status-dot active-dot"></span>Sud-Kivu</td><td class="mn">2</td><td class="mn">0</td><td><span class="badge b-mid">Monitoring</span></td></tr>
+          <tr><td style="color:var(--blue)">Uganda (Kampala)</td><td class="mn">9</td><td class="mn">1</td><td><span class="badge b-mid">Monitoring</span></td></tr>
+        </tbody>
+      </table>
+      <div style="margin-top:14px;font-size:11px;color:var(--text2);">
+        <strong style="color:var(--red2);">Key risks:</strong> No approved vaccine for BDBV · Healthcare worker transmission (index case: nurse) · Porous DRC–Uganda border · Mining population movement · Armed conflict limiting access
+      </div>
+    </div>
+    <div class="panel" style="padding:14px;min-height:340px;">
+      <div class="panel-head"><span class="panel-title">Africa — all Ebola-affected countries</span></div>
+      <svg id="mapSvg" class="map-svg" viewBox="0 0 960 500"></svg>
+      <div class="map-leg" id="mapLeg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="section fi">
+  <div class="section-head"><span class="section-title">Outbreak progression</span></div>
+  <div class="grid2">
+    <!-- Cumulative trend -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">2026 DRC — cumulative confirmed cases</span>
+      </div>
+      <div class="chart-box" style="height:220px;">
+        <canvas id="trendChart" role="img" aria-label="Cumulative confirmed Ebola cases DRC 2026"></canvas>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text3);">Reported dates: May 15–29 · CDC/WHO figures · subject to revision</div>
+    </div>
+    <!-- Historical comparison -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">2026 vs past DRC outbreaks</span>
+        <div class="tabs">
+          <button class="tab on" onclick="setCompM('cases',this)">Cases</button>
+          <button class="tab" onclick="setCompM('deaths',this)">Deaths</button>
+        </div>
+      </div>
+      <div class="chart-box" style="height:220px;">
+        <canvas id="compChart" role="img" aria-label="Comparison of DRC Ebola outbreaks by total cases"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPECIES + COUNTRIES -->
+<div class="section fi">
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">All outbreaks by species</span>
+        <div class="tabs">
+          <button class="tab on" onclick="setSpM('cases',this)">Cases</button>
+          <button class="tab" onclick="setSpM('deaths',this)">Deaths</button>
+          <button class="tab" onclick="setSpM('n',this)">Count</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:0;">
+        <div class="chart-box" style="height:190px;"><canvas id="spChart" role="img" aria-label="Distribution by Ebola species"></canvas></div>
+        <div id="spLeg" class="sp-legend"></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Top countries — all outbreaks</span>
+        <div class="tabs">
+          <button class="tab on" onclick="setCtyM('cases',this)">Cases</button>
+          <button class="tab" onclick="setCtyM('deaths',this)">Deaths</button>
+          <button class="tab" onclick="setCtyM('n',this)">Outbreaks</button>
+        </div>
+      </div>
+      <div class="chart-box" id="ctyWrap" style="height:190px;">
+        <canvas id="ctyChart" role="img" aria-label="Top countries by Ebola cases"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORICAL SECTION -->
+<div class="section fi">
+  <div class="section-head"><span class="section-title">Historical records — all outbreaks 1976–2026</span></div>
+
+  <div class="filter-bar">
+    <span class="filter-label">Period</span>
+    <div class="fgroup" id="yFilters">
+      <button class="fbtn on" data-y="all" onclick="setY('all',this)">All</button>
+      <button class="fbtn" data-y="1976-1999" onclick="setY('1976-1999',this)">1976–1999</button>
+      <button class="fbtn" data-y="2000-2013" onclick="setY('2000-2013',this)">2000–2013</button>
+      <button class="fbtn" data-y="2014-2016" onclick="setY('2014-2016',this)">2014–2016</button>
+      <button class="fbtn" data-y="2017-2026" onclick="setY('2017-2026',this)">2017–2026</button>
+    </div>
+    <span class="filter-label" style="margin-left:8px;">Species</span>
+    <div class="fgroup" id="spFilters">
+      <button class="fbtn on" data-sp="all" onclick="setSp('all',this)">All</button>
+      <button class="fbtn" data-sp="Zaire" onclick="setSp('Zaire',this)">Zaire</button>
+      <button class="fbtn" data-sp="Sudan" onclick="setSp('Sudan',this)">Sudan</button>
+      <button class="fbtn" data-sp="Bundibugyo" onclick="setSp('Bundibugyo',this)">Bundibugyo</button>
+    </div>
+    <div class="search-wrap">
+      <svg class="s-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-inp" id="searchInp" type="text" placeholder="Search country…" oninput="doFilter()"/>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:12px;">
+    <div class="tbl-controls">
+      <select class="sel" id="sortSel" onchange="doFilter()">
+        <option value="year-desc">Year ↓</option>
+        <option value="year-asc">Year ↑</option>
+        <option value="cases-desc">Cases ↓</option>
+        <option value="deaths-desc">Deaths ↓</option>
+        <option value="cfr-desc">CFR ↓</option>
+      </select>
+      <select class="sel" id="rowsSel" onchange="doFilter()">
+        <option value="10">10 rows</option>
+        <option value="25" selected>25 rows</option>
+        <option value="50">50 rows</option>
+        <option value="9999">All</option>
+      </select>
+      <span class="tbl-info" id="tblInfo"></span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="data-tbl">
+        <thead><tr>
+          <th onclick="sBy('year')">Year <span id="a-year">↕</span></th>
+          <th onclick="sBy('country')">Country <span id="a-country">↕</span></th>
+          <th onclick="sBy('cases')">Cases <span id="a-cases">↕</span></th>
+          <th onclick="sBy('deaths')">Deaths <span id="a-deaths">↕</span></th>
+          <th onclick="sBy('cfr')">CFR <span id="a-cfr">↕</span></th>
+          <th>Species</th>
+          <th>Status</th>
+        </tr></thead>
+        <tbody id="tblBody"></tbody>
+      </table>
+    </div>
+    <div class="pager" id="pager"></div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="fi">
+  <div class="footer-src">
+    Sources:
+    <a href="https://www.cdc.gov/ebola/situation-summary/index.html" target="_blank">CDC Current Situation (29 May 2026)</a> ·
+    <a href="https://www.ecdc.europa.eu/en/ebola-virus-disease-outbreak-democratic-republic-congo-and-uganda" target="_blank">ECDC Rapid Risk Assessment</a> ·
+    <a href="https://www.who.int/emergencies/disease-outbreak-news" target="_blank">WHO DON</a> ·
+    <a href="https://www.doctorswithoutborders.org/latest/ebola-disease-outbreak-2026-how-msf-responding" target="_blank">MSF 2026 Response</a>
+  </div>
+  <span class="footer-tag">EBOLA-MONITOR v2.0 · DATA: WHO/CDC/ECDC/MSF</span>
+</footer>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+/* ══════════════════════════════════════
+   DATA
+══════════════════════════════════════ */
+const ALL = [
+  {year:1976,country:'DRC',cases:318,deaths:280,cfr:88,species:'Zaire',status:'Over'},
+  {year:1976,country:'Sudan',cases:284,deaths:151,cfr:53,species:'Sudan',status:'Over'},
+  {year:1977,country:'DRC',cases:1,deaths:1,cfr:100,species:'Zaire',status:'Over'},
+  {year:1979,country:'Sudan',cases:34,deaths:22,cfr:65,species:'Sudan',status:'Over'},
+  {year:1994,country:'Gabon',cases:52,deaths:31,cfr:60,species:'Zaire',status:'Over'},
+  {year:1994,country:"Côte d'Ivoire",cases:1,deaths:0,cfr:0,species:'Taï Forest',status:'Over'},
+  {year:1995,country:'DRC',cases:315,deaths:254,cfr:81,species:'Zaire',status:'Over'},
+  {year:1996,country:'Gabon',cases:31,deaths:21,cfr:68,species:'Zaire',status:'Over'},
+  {year:1996,country:'Gabon',cases:60,deaths:45,cfr:75,species:'Zaire',status:'Over'},
+  {year:1996,country:'South Africa',cases:2,deaths:1,cfr:50,species:'Zaire',status:'Over'},
+  {year:2000,country:'Uganda',cases:425,deaths:224,cfr:53,species:'Sudan',status:'Over'},
+  {year:2001,country:'Gabon',cases:65,deaths:53,cfr:82,species:'Zaire',status:'Over'},
+  {year:2001,country:'Rep. Congo',cases:57,deaths:43,cfr:75,species:'Zaire',status:'Over'},
+  {year:2002,country:'Rep. Congo',cases:143,deaths:128,cfr:90,species:'Zaire',status:'Over'},
+  {year:2004,country:'Sudan',cases:17,deaths:7,cfr:41,species:'Sudan',status:'Over'},
+  {year:2005,country:'Rep. Congo',cases:12,deaths:10,cfr:83,species:'Zaire',status:'Over'},
+  {year:2007,country:'DRC',cases:264,deaths:187,cfr:71,species:'Zaire',status:'Over'},
+  {year:2007,country:'Uganda',cases:149,deaths:37,cfr:25,species:'Bundibugyo',status:'Over'},
+  {year:2008,country:'DRC',cases:32,deaths:14,cfr:44,species:'Zaire',status:'Over'},
+  {year:2011,country:'Uganda',cases:1,deaths:1,cfr:100,species:'Sudan',status:'Over'},
+  {year:2012,country:'DRC',cases:77,deaths:36,cfr:47,species:'Bundibugyo',status:'Over'},
+  {year:2012,country:'Uganda',cases:24,deaths:17,cfr:71,species:'Sudan',status:'Over'},
+  {year:2014,country:'Guinea',cases:3811,deaths:2543,cfr:67,species:'Zaire',status:'Over'},
+  {year:2014,country:'Sierra Leone',cases:14124,deaths:3956,cfr:28,species:'Zaire',status:'Over'},
+  {year:2014,country:'Liberia',cases:10675,deaths:4809,cfr:45,species:'Zaire',status:'Over'},
+  {year:2014,country:'Nigeria',cases:20,deaths:8,cfr:40,species:'Zaire',status:'Over'},
+  {year:2014,country:'Senegal',cases:1,deaths:0,cfr:0,species:'Zaire',status:'Over'},
+  {year:2014,country:'Mali',cases:8,deaths:6,cfr:75,species:'Zaire',status:'Over'},
+  {year:2014,country:'USA',cases:4,deaths:1,cfr:25,species:'Zaire',status:'Over'},
+  {year:2017,country:'DRC',cases:8,deaths:4,cfr:50,species:'Zaire',status:'Over'},
+  {year:2018,country:'DRC',cases:54,deaths:33,cfr:61,species:'Zaire',status:'Over'},
+  {year:2018,country:'DRC',cases:3481,deaths:2299,cfr:66,species:'Zaire',status:'Over'},
+  {year:2020,country:'DRC',cases:130,deaths:55,cfr:42,species:'Zaire',status:'Over'},
+  {year:2021,country:'Guinea',cases:23,deaths:12,cfr:52,species:'Zaire',status:'Over'},
+  {year:2021,country:'DRC',cases:12,deaths:6,cfr:50,species:'Zaire',status:'Over'},
+  {year:2022,country:'DRC',cases:6,deaths:6,cfr:100,species:'Zaire',status:'Over'},
+  {year:2022,country:'Uganda',cases:164,deaths:55,cfr:34,species:'Sudan',status:'Over'},
+  {year:2025,country:'Uganda',cases:14,deaths:4,cfr:29,species:'Sudan',status:'Over'},
+  {year:2025,country:'DRC',cases:64,deaths:45,cfr:70,species:'Zaire',status:'Over'},
+  {year:2026,country:'DRC',cases:125,deaths:17,cfr:14,species:'Bundibugyo',status:'Ongoing'},
+  {year:2026,country:'Uganda',cases:9,deaths:1,cfr:11,species:'Bundibugyo',status:'Ongoing'},
+];
+
+const C_ISO={
+  'DRC':180,'Sudan':729,'Gabon':266,'Rep. Congo':178,
+  'Uganda':800,'Guinea':324,'Sierra Leone':694,'Liberia':430,
+  'Nigeria':566,'Senegal':686,'Mali':466,'USA':840,
+  'South Africa':710,"Côte d'Ivoire":384
+};
+const ISO_C=Object.fromEntries(Object.entries(C_ISO).map(([k,v])=>[v,k]));
+
+/* ══ 2026 CUMULATIVE TREND DATA (May 15–29) ══ */
+const TREND_DATES=['May 15','May 16','May 17','May 18','May 19','May 21','May 22','May 24','May 26','May 28','May 29'];
+const TREND_CONF=[8,8,10,13,22,31,40,51,70,98,125];
+const TREND_SUSP=[246,248,280,300,370,516,560,640,750,870,906];
+
+/* ══ DRC OUTBREAKS COMPARISON ══ */
+const DRC_HISTORY=[
+  {label:'1976',cases:318,deaths:280},
+  {label:'1995',cases:315,deaths:254},
+  {label:'2007',cases:264,deaths:187},
+  {label:'2008',cases:32,deaths:14},
+  {label:'2018\n(Kivu)',cases:3481,deaths:2299},
+  {label:'2020',cases:130,deaths:55},
+  {label:'2021',cases:12,deaths:6},
+  {label:'2022',cases:6,deaths:6},
+  {label:'2025',cases:64,deaths:45},
+  {label:'2026\n(current)',cases:125,deaths:17},
+];
+
+/* ══════ STATE ══════ */
+let yFilt='all',spFilt='all',search='',sortF='year',sortD='desc',page=1,rows=25;
+let mapM='cases',compM='cases',spM='cases',ctyM='cases';
+let trendChart,compChart,spChart,ctyChart;
+
+/* ══════ FILTER ENGINE ══════ */
+function getFiltered(){
+  return ALL.filter(d=>{
+    if(spFilt!=='all'&&d.species!==spFilt) return false;
+    if(search&&!d.country.toLowerCase().includes(search.toLowerCase())) return false;
+    if(yFilt==='1976-1999') return d.year<=1999;
+    if(yFilt==='2000-2013') return d.year>=2000&&d.year<=2013;
+    if(yFilt==='2014-2016') return d.year>=2014&&d.year<=2016;
+    if(yFilt==='2017-2026') return d.year>=2017;
+    return true;
+  });
+}
+function setY(v,b){yFilt=v;document.querySelectorAll('#yFilters .fbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');page=1;doFilter();}
+function setSp(v,b){spFilt=v;document.querySelectorAll('#spFilters .fbtn').forEach(x=>x.classList.remove('on'));b.classList.add('on');page=1;doFilter();}
+function doFilter(){
+  search=document.getElementById('searchInp').value;
+  const sv=document.getElementById('sortSel').value;[sortF,sortD]=sv.split('-');
+  rows=parseInt(document.getElementById('rowsSel').value);
+  renderTable(getFiltered());
+  updateMapChart(getFiltered());
+}
+
+/* ══════ TABLE ══════ */
+function sBy(f){
+  if(sortF===f)sortD=sortD==='asc'?'desc':'asc'; else{sortF=f;sortD='desc';}
+  document.querySelectorAll('.data-tbl th span').forEach(s=>s.textContent='↕');
+  const sp=document.getElementById('a-'+f);
+  if(sp) sp.textContent=sortD==='asc'?'↑':'↓';
+  document.querySelectorAll('.data-tbl th').forEach(th=>{
+    th.classList.toggle('sorted',th.getAttribute('onclick')==="sBy('"+f+"')");
+  });
+  page=1; renderTable(getFiltered());
+}
+function renderTable(data){
+  const sorted=[...data].sort((a,b)=>{
+    const av=a[sortF]??-1,bv=b[sortF]??-1;
+    return sortD==='asc'?(av>bv?1:-1):(av<bv?1:-1);
+  });
+  const total=sorted.length;
+  const pages=Math.max(1,Math.ceil(total/rows));
+  if(page>pages)page=1;
+  const sl=rows>=9999?sorted:sorted.slice((page-1)*rows,page*rows);
+  document.getElementById('tblInfo').textContent=total+' records';
+  const SPC={Zaire:'sp-z',Sudan:'sp-s',Bundibugyo:'sp-b','Taï Forest':'sp-t'};
+  document.getElementById('tblBody').innerHTML=sl.map(d=>`
+    <tr>
+      <td class="mn">${d.year}</td>
+      <td>${d.country}</td>
+      <td class="mn">${d.cases!==null?d.cases.toLocaleString():'—'}</td>
+      <td class="mn">${d.deaths!==null?d.deaths.toLocaleString():'—'}</td>
+      <td>${d.cfr!==null?`<span class="badge ${d.cfr>=70?'b-hi':d.cfr>=40?'b-mid':'b-lo'}">${d.cfr}%</span>`:'<span class="badge b-na">—</span>'}</td>
+      <td><span class="badge ${SPC[d.species]||'sp-t'}">${d.species}</span></td>
+      <td>${d.status==='Ongoing'?'<span class="tag-on">Ongoing</span>':'<span class="tag-ov">Declared over</span>'}</td>
+    </tr>`).join('');
+  const bar=document.getElementById('pager');
+  if(rows>=9999||pages<=1){bar.innerHTML='';return;}
+  let h=`<button class="pg" onclick="gp(${page-1})" ${page===1?'disabled':''}>‹</button>`;
+  for(let p=1;p<=pages;p++){
+    if(p===1||p===pages||Math.abs(p-page)<=1) h+=`<button class="pg ${p===page?'on':''}" onclick="gp(${p})">${p}</button>`;
+    else if(Math.abs(p-page)===2) h+=`<span style="color:var(--text3);">…</span>`;
+  }
+  h+=`<button class="pg" onclick="gp(${page+1})" ${page===pages?'disabled':''}>›</button>`;
+  bar.innerHTML=h;
+}
+function gp(p){page=p;renderTable(getFiltered());}
+
+/* ══════ TREND CHART ══════ */
+function initTrendChart(){
+  trendChart=new Chart(document.getElementById('trendChart'),{
+    type:'line',
+    data:{
+      labels:TREND_DATES,
+      datasets:[
+        {label:'Confirmed',data:TREND_CONF,borderColor:'#e63946',backgroundColor:'rgba(230,57,70,.1)',fill:true,tension:.4,pointRadius:4,pointBackgroundColor:'#e63946'},
+        {label:'Suspected',data:TREND_SUSP,borderColor:'#f4a261',backgroundColor:'rgba(244,162,97,.07)',fill:true,tension:.4,pointRadius:3,pointBackgroundColor:'#f4a261',borderDash:[4,3]}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
+      scales:{
+        x:{ticks:{color:'#3e4a56',font:{size:10},maxRotation:45},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'#3e4a56',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}
+      }
+    }
+  });
+  // manual legend
+  const leg=document.createElement('div');
+  leg.style.cssText='display:flex;gap:14px;margin-top:6px;font-size:11px;color:var(--text2);font-family:var(--mono);';
+  leg.innerHTML=`<span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:2px;background:#e63946;display:inline-block;"></span>Confirmed</span><span style="display:flex;align-items:center;gap:5px;"><span style="width:10px;height:2px;background:#f4a261;display:inline-block;border-top:2px dashed #f4a261;"></span>Suspected</span>`;
+  document.getElementById('trendChart').parentElement.parentElement.appendChild(leg);
+}
+
+/* ══════ COMPARISON CHART ══════ */
+function setCompM(m,b){compM=m;b.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));b.classList.add('on');updateCompChart();}
+function updateCompChart(){
+  const vals=DRC_HISTORY.map(d=>d[compM]);
+  const cols=DRC_HISTORY.map((d,i)=>i===DRC_HISTORY.length-1?'#e63946':'#4895ef55');
+  const bc=DRC_HISTORY.map((d,i)=>i===DRC_HISTORY.length-1?'#e63946':'#4895ef');
+  if(compChart){
+    compChart.data.datasets[0].data=vals;
+    compChart.data.datasets[0].backgroundColor=cols;
+    compChart.data.datasets[0].borderColor=bc;
+    compChart.update();return;
+  }
+  compChart=new Chart(document.getElementById('compChart'),{
+    type:'bar',
+    data:{labels:DRC_HISTORY.map(d=>d.label),datasets:[{data:vals,backgroundColor:cols,borderColor:bc,borderWidth:1,borderRadius:3,borderSkipped:false}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.y.toLocaleString()}`}}},
+      scales:{
+        x:{ticks:{color:'#3e4a56',font:{size:10},maxRotation:45},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'#3e4a56',font:{size:10},callback:v=>v>=1000?(v/1000)+'k':v},grid:{color:'rgba(255,255,255,.04)'}}
+      }
+    }
+  });
+}
+
+/* ══════ SPECIES CHART ══════ */
+function setSpM(m,b){spM=m;b.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));b.classList.add('on');updateSpChart(getFiltered());}
+function updateSpChart(data){
+  const sp={};
+  data.forEach(d=>{
+    if(!sp[d.species])sp[d.species]={cases:0,deaths:0,n:0};
+    sp[d.species].n++;
+    if(d.cases)sp[d.species].cases+=d.cases;
+    if(d.deaths)sp[d.species].deaths+=d.deaths;
+  });
+  const labs=Object.keys(sp);
+  const vals=labs.map(l=>sp[l][spM]||sp[l].n);
+  const COLS={'Zaire':'#4895ef','Sudan':'#f4a261','Bundibugyo':'#52b788','Taï Forest':'#7a8694'};
+  const bgs=labs.map(l=>COLS[l]||'#7a8694');
+  const tot=vals.reduce((a,b)=>a+b,0);
+  document.getElementById('spLeg').innerHTML=labs.map((l,i)=>`
+    <div class="sp-legend-row">
+      <span class="sp-swatch" style="background:${bgs[i]}"></span>
+      <span style="font-size:11px;color:var(--text2);">${l}</span>
+      <span style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--text);">${tot>0?Math.round(vals[i]/tot*100)+'%':''}</span>
+    </div>`).join('');
+  if(spChart){spChart.data.labels=labs;spChart.data.datasets[0].data=vals;spChart.data.datasets[0].backgroundColor=bgs;spChart.update();return;}
+  spChart=new Chart(document.getElementById('spChart'),{
+    type:'doughnut',
+    data:{labels:labs,datasets:[{data:vals,backgroundColor:bgs,borderWidth:0,hoverOffset:6}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${c.parsed.toLocaleString()}`}}}}
+  });
+}
+
+/* ══════ COUNTRY CHART ══════ */
+function setCtyM(m,b){ctyM=m;b.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));b.classList.add('on');updateCtyChart(getFiltered());}
+function updateCtyChart(data){
+  const byC={};
+  data.forEach(d=>{
+    if(!byC[d.country])byC[d.country]={cases:0,deaths:0,n:0};
+    byC[d.country].n++;
+    if(d.cases)byC[d.country].cases+=d.cases;
+    if(d.deaths)byC[d.country].deaths+=d.deaths;
+  });
+  const sorted=Object.entries(byC).sort((a,b)=>b[1][ctyM]-a[1][ctyM]).slice(0,10);
+  const labs=sorted.map(e=>e[0]);
+  const vals=sorted.map(e=>e[1][ctyM]);
+  const wrap=document.getElementById('ctyWrap');
+  wrap.style.height=Math.max(190,labs.length*32+50)+'px';
+  if(ctyChart){ctyChart.data.labels=labs;ctyChart.data.datasets[0].data=vals;ctyChart.update();return;}
+  ctyChart=new Chart(document.getElementById('ctyChart'),{
+    type:'bar',
+    data:{labels:labs,datasets:[{data:vals,backgroundColor:'#e6394666',borderColor:'#e63946',borderWidth:1,borderRadius:3}]},
+    options:{
+      indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.parsed.x.toLocaleString()}`}}},
+      scales:{
+        x:{ticks:{color:'#3e4a56',font:{size:10},callback:v=>v>=1000?(v/1000)+'k':v},grid:{color:'rgba(255,255,255,.04)'}},
+        y:{ticks:{color:'#7a8694',font:{size:11}},grid:{color:'transparent'}}
+      }
+    }
+  });
+}
+
+/* ══════ MAP ══════ */
+function setMapM(m,b){mapM=m;b.closest('.tabs').querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));b.classList.add('on');updateMapChart(getFiltered());}
+function updateMapChart(data){
+  const byC={};
+  data.forEach(d=>{
+    const iso=C_ISO[d.country];
+    if(!iso)return;
+    if(!byC[iso])byC[iso]={cases:0,deaths:0,outbreaks:0,country:d.country};
+    byC[iso].outbreaks++;
+    if(d.cases)byC[iso].cases+=d.cases;
+    if(d.deaths)byC[iso].deaths+=d.deaths;
+  });
+  const vals=Object.values(byC).map(d=>d[mapM]);
+  const maxV=Math.max(...vals,1);
+  const scale=d3.scaleSequential([0,maxV],d3.interpolateRgb('#1a0305','#e63946'));
+  d3.selectAll('.cp').attr('fill',d=>{
+    const id=+d.id;
+    if(!byC[id])return'#141a21';
+    // highlight current outbreak DRC
+    if(id===180&&data.some(r=>r.year===2026&&r.country==='DRC')) return '#e63946';
+    if(id===800&&data.some(r=>r.year===2026&&r.country==='Uganda')) return '#f4a261';
+    return scale(byC[id][mapM]);
+  });
+  const leg=document.getElementById('mapLeg');
+  const steps=4;
+  leg.innerHTML='<span style="font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-right:6px;">Scale</span>';
+  for(let i=0;i<=steps;i++){
+    const v=Math.round(maxV*i/steps);
+    leg.innerHTML+=`<span class="leg-i"><span class="leg-sw" style="background:${scale(v)}"></span>${v>=1000?(v/1000).toFixed(1)+'k':v}</span>`;
+  }
+  leg.innerHTML+=`<span class="leg-i" style="margin-left:8px;"><span class="leg-sw" style="background:#e63946"></span>2026 DRC (active)</span>`;
+  leg.innerHTML+=`<span class="leg-i"><span class="leg-sw" style="background:#f4a261"></span>2026 Uganda (active)</span>`;
+}
+
+/* ══════ MAP INIT ══════ */
+d3.json('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(world=>{
+  const svg=d3.select('#mapSvg');
+  const proj=d3.geoNaturalEarth1().scale(148).translate([480,250]);
+  const path=d3.geoPath(proj);
+  const features=topojson.feature(world,world.objects.countries).features;
+  svg.selectAll('.cp').data(features).join('path')
+    .attr('class','cp').attr('d',path)
+    .attr('fill','#141a21')
+    .attr('stroke','rgba(255,255,255,0.05)').attr('stroke-width',0.4)
+    .on('mousemove',(ev,d)=>{
+      const id=+d.id,name=ISO_C[id];
+      if(!name)return;
+      const fd=getFiltered();
+      const agg={cases:0,deaths:0,outbreaks:0};
+      fd.forEach(r=>{if(r.country===name){agg.outbreaks++;if(r.cases)agg.cases+=r.cases;if(r.deaths)agg.deaths+=r.deaths;}});
+      if(!agg.outbreaks)return;
+      const tt=document.getElementById('mtt');
+      tt.style.display='block';
+      tt.style.left=(ev.clientX+14)+'px';
+      tt.style.top=(ev.clientY-10)+'px';
+      const isActive=name==='DRC'||name==='Uganda';
+      tt.innerHTML=`<strong>${name}${isActive?' 🔴':''}</strong>
+        <div class="mtt-row"><span>Outbreaks</span><span>${agg.outbreaks}</span></div>
+        <div class="mtt-row"><span>Total cases</span><span>${agg.cases.toLocaleString()}</span></div>
+        <div class="mtt-row"><span>Total deaths</span><span>${agg.deaths.toLocaleString()}</span></div>`;
+    })
+    .on('mouseleave',()=>{document.getElementById('mtt').style.display='none';});
+  initTrendChart();
+  updateCompChart();
+  updateSpChart(getFiltered());
+  updateCtyChart(getFiltered());
+  renderTable(getFiltered());
+  updateMapChart(getFiltered());
+});
+</script>
+</body>
+</html>
